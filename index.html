@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>わいわいミニゲーム</title>
+<title>わいわいすごろくパーティー</title>
 <style>
 :root{--bg:#14161f;--panel:#1f2330;--line:#333a4d;--text:#eef1f8;--sub:#9aa3b8;--accent:#7c9cff}
 *{box-sizing:border-box}
@@ -44,6 +44,20 @@ td,th{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left}
 th{color:var(--sub);font-size:13px;font-weight:500}
 td.num{text-align:right;font-variant-numeric:tabular-nums}
 .gain{color:#8be28b;font-weight:700}
+select{font:inherit;font-size:16px;padding:10px;border-radius:10px;border:1px solid var(--line);background:#12141c;color:var(--text)}
+#boardArea{position:relative;height:480px;background:#12141c;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.space{position:absolute;width:8.2%;height:13.5%;transform:translate(-50%,-50%);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;color:#fff}
+.space.p{background:#1d8f86}.space.m{background:#c96a2b}.space.e{background:#7a55c7}
+.space.start{outline:3px solid #fff8}
+.space.crown{box-shadow:0 0 0 4px #ffd24d,0 0 18px #ffd24d}
+.space.crown::before{content:"👑";position:absolute;top:-9px;right:-7px;font-size:22px}
+.token{position:absolute;width:26px;height:26px;border-radius:50%;border:2px solid #fff;transform:translate(-50%,-50%);transition:left .28s,top .28s;z-index:3;font-size:12px;font-weight:800;color:#0c1020;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px #000a}
+#bcenter{position:absolute;left:13%;right:13%;top:20%;bottom:20%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}
+#bmsg{font-size:22px;font-weight:700;min-height:62px;line-height:1.4}
+#dice{width:84px;height:84px;border-radius:16px;background:#fff;color:#14161f;font-size:50px;font-weight:800;display:flex;align-items:center;justify-content:center}
+#dice.final{background:#ffd24d}
+#bctl{min-height:46px}
+.chip.turn{border-color:#fff;box-shadow:0 0 0 2px #fff6}
 /* games */
 .mashbtn{width:240px;height:240px;border-radius:50%;font-size:72px;background:#ff5d5d;color:#fff;transition:transform .05s}
 .mashbtn:active,.mashbtn.hit{transform:scale(.93)}
@@ -69,8 +83,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 <div id="app">
 
 <section id="home" class="screen on">
-  <h1>🎉 わいわいミニゲーム</h1>
-  <p class="sub center">2〜4人で遊ぶオンライン対戦ミニゲーム集</p>
+  <h1>🎲 わいわいすごろくパーティー</h1>
+  <p class="sub center">2〜4人で遊ぶオンラインすごろく。サイコロで進んでコインを集め、王冠を一番多く手に入れた人の勝ち！</p>
   <div class="panel">
     <label for="name">なまえ</label>
     <input id="name" maxlength="10" placeholder="プレイヤー名">
@@ -99,10 +113,23 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
   <div class="panel">
     <h2>プレイヤー <span class="sub" id="pcount"></span></h2>
     <div class="players" id="lobbyPlayers"></div>
-    <div id="hostCtl"><button id="btnStart">ゲーム開始</button> <span class="sub">全6種目をランダムな順番で遊びます</span></div>
+    <div id="hostCtl"><button id="btnStart">ゲーム開始</button> <select id="rounds"><option value="5">5ラウンド（短め）</option><option value="8" selected>8ラウンド（ふつう）</option><option value="12">12ラウンド（長め）</option></select></div>
     <div id="guestWait" class="sub">ホストが開始するのを待っています…</div>
   </div>
   <p class="center"><button id="btnLeave" class="ghost">退出する</button></p>
+</section>
+
+<section id="board" class="screen">
+  <div style="display:flex;justify-content:space-between;align-items:baseline"><h2>すごろくボード</h2><span class="sub" id="bround"></span></div>
+  <div class="players" id="bhud"></div>
+  <div id="boardArea">
+    <div id="bcenter">
+      <div id="bmsg"></div>
+      <div id="dice">🎲</div>
+      <div id="bctl"><button id="btnRoll">サイコロを振る（スペース）</button><button id="btnBuyY">交換する</button> <button id="btnBuyN" class="ghost">やめておく</button></div>
+    </div>
+  </div>
+  <p class="sub center">＋：コイン+3　−：コイン−3　？：イベント　👑：コイン15枚で王冠と交換（通過するだけでOK）　全員が動いたらミニゲーム</p>
 </section>
 
 <section id="game" class="screen">
@@ -115,7 +142,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 <section id="round" class="screen">
   <div class="panel">
     <h2 id="rtitle"></h2>
-    <table><thead><tr><th>順位</th><th>プレイヤー</th><th>記録</th><th class="num">獲得</th><th class="num">合計</th></tr></thead><tbody id="rbody"></tbody></table>
+    <table><thead><tr><th>順位</th><th>プレイヤー</th><th>記録</th><th class="num">獲得コイン</th><th class="num">所持</th></tr></thead><tbody id="rbody"></tbody></table>
     <p style="margin-top:18px"><button id="btnNext">次へ</button><span id="rwait" class="sub">ホストが進めるのを待っています…</span></p>
   </div>
 </section>
@@ -123,7 +150,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 <section id="final" class="screen">
   <h1>🏆 最終結果</h1>
   <div class="panel">
-    <table><thead><tr><th>順位</th><th>プレイヤー</th><th class="num">合計</th></tr></thead><tbody id="fbody"></tbody></table>
+    <table><thead><tr><th>順位</th><th>プレイヤー</th><th class="num">王冠</th><th class="num">コイン</th></tr></thead><tbody id="fbody"></tbody></table>
+    <p class="sub" id="fbonus"></p>
     <p style="margin-top:18px"><button id="btnBack">ロビーに戻る</button><span id="fwait" class="sub">ホストが進めるのを待っています…</span></p>
   </div>
 </section>
@@ -138,6 +166,9 @@ const PREFIX = 'wkwk-minigames-v1-';
 const COLORS = ['#ff5d5d', '#4da3ff', '#ffd24d', '#5fd38a'];
 const INTRO = 4000;
 const MAX_PLAYERS = 4;
+const N_SPACES = 28, CROWN_COST = 15, MG_COINS = [8, 5, 3, 1];
+const SPACE_TYPES = 'pppmpeppmpeppmpeppmpeppmpepm'.split('');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 const $ = id => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
@@ -315,7 +346,8 @@ function getName() {
 }
 function send(m) { if (isHost) hostHandle(myId, m); else if (hostConn && hostConn.open) hostConn.send(m); }
 function hostBroadcast(m) { conns.forEach(c => { if (c.open) c.send(m); }); clientHandle(m); }
-function pub() { return H.players.map(p => ({ id: p.id, name: p.name, slot: p.slot, score: p.score })); }
+function newPlayer(id, name, slot) { return { id, name, slot, coins: 0, crowns: 0, pos: 0, mg: 0 }; }
+function pub() { return H.players.map(p => ({ ...p })); }
 function hostLobby() { H.phase = 'lobby'; hostBroadcast({ t: 'lobby', players: pub(), code: H.code }); }
 
 function resetAll() {
@@ -333,7 +365,7 @@ function newCode() { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; f
 
 function initHost(code) {
   isHost = true; myId = 'host';
-  H = { code, phase: 'lobby', players: [{ id: myId, name: getName(), slot: 0, score: 0 }], order: [], round: 0, results: {}, pg: {}, gs: null };
+  H = { code, phase: 'lobby', players: [newPlayer(myId, getName(), 0)], bag: [], round: 0, maxRounds: 8, results: {}, pg: {}, gs: null, wait: null, gen: 0 };
   hostLobby();
 }
 
@@ -385,6 +417,7 @@ function hostDrop(pid) {
   const i = H.players.findIndex(p => p.id === pid); if (i < 0) return;
   const name = H.players[i].name; H.players.splice(i, 1);
   toast(name + ' が退出しました');
+  if (H.wait && H.wait.pid === pid) H.wait.done(false);
   if (H.phase === 'lobby') hostLobby();
   else if (H.phase === 'game') hostCheckDone();
 }
@@ -397,12 +430,13 @@ function hostHandle(pid, m) {
     if (H.phase !== 'lobby') { if (c) c.send({ t: 'err', msg: 'ゲーム中のため参加できません' }); return; }
     if (H.players.length >= MAX_PLAYERS) { if (c) c.send({ t: 'err', msg: '部屋が満員です' }); return; }
     const used = H.players.map(p => p.slot); let slot = 0; while (used.includes(slot)) slot++;
-    H.players.push({ id: pid, name: String(m.name || 'プレイヤー').slice(0, 10), slot, score: 0 });
+    H.players.push(newPlayer(pid, String(m.name || 'プレイヤー').slice(0, 10), slot));
     hostLobby();
     return;
   }
   if (!H.players.some(p => p.id === pid)) return;
-  if (m.t === 'pg') { if (H.phase === 'game' && !GAMES[H.gid].hostScored) H.pg[pid] = m.v; }
+  if (m.t === 'roll' || m.t === 'buy') { const w = H.wait; if (w && w.kind === m.t && w.pid === pid) w.done(m.t === 'buy' ? !!m.yes : true); }
+  else if (m.t === 'pg') { if (H.phase === 'game' && !GAMES[H.gid].hostScored) H.pg[pid] = m.v; }
   else if (m.t === 'g') { if (H.phase === 'game') { const g = GAMES[H.gid]; if (g.hostMsg) g.hostMsg(H, pid, m.d || {}); } }
   else if (m.t === 'res') {
     if (H.phase !== 'game') return;
@@ -413,17 +447,92 @@ function hostHandle(pid, m) {
 }
 function hostCheckDone() { if (H.phase === 'game' && !GAMES[H.gid].hostScored && H.players.every(p => p.id in H.results)) hostConclude(); }
 
-function hostStart() {
-  const ids = Object.keys(GAMES);
-  for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
-  H.order = ids; H.round = 0; H.players.forEach(p => p.score = 0);
-  hostRound();
+function hostBoard(phase, turnId, msg) {
+  hostBroadcast({ t: 'board', players: pub(), crownAt: H.crownAt, round: H.round, max: H.maxRounds, phase, turnId, msg });
+}
+// 特定プレイヤーの入力を待つ。時間切れ・退出時は def で進む
+function hostWait(kind, pid, ms, def) {
+  return new Promise(res => {
+    const w = { kind, pid, done: v => { if (H && H.wait === w) H.wait = null; clearTimeout(to); res(v); } };
+    const to = setTimeout(() => w.done(def), ms);
+    H.wait = w;
+  });
+}
+function moveCrown(h) { h.crownAt = (h.crownAt + 4 + Math.floor(Math.random() * 12)) % N_SPACES; }
+
+function applySpace(h, p) {
+  const t = SPACE_TYPES[p.pos], others = h.players.filter(q => q !== p);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  if (t === 'p') { p.coins += 3; return `${p.name}：プラスマス！ +3 コイン`; }
+  if (t === 'm') { const d = Math.min(3, p.coins); p.coins -= d; return `${p.name}：マイナスマス… −${d} コイン`; }
+  const evs = ['chest', 'pit', 'warp', 'all', 'crown']; if (others.length) evs.push('swap', 'steal');
+  switch (pick(evs)) {
+    case 'chest': p.coins += 6; return `？イベント：${p.name} は宝箱を見つけた！ +6 コイン`;
+    case 'pit': { const d = Math.min(5, p.coins); p.coins -= d; return `？イベント：${p.name} は落とし穴に落ちた… −${d} コイン`; }
+    case 'warp': p.pos = Math.floor(Math.random() * N_SPACES); return `？イベント：${p.name} はどこかへワープした！`;
+    case 'all': h.players.forEach(q => q.coins += 3); return '？イベント：みんなにおすそわけ！ 全員 +3 コイン';
+    case 'crown': moveCrown(h); return '？イベント：王冠が別のマスへ逃げ出した！';
+    case 'swap': { const o = pick(others); [p.pos, o.pos] = [o.pos, p.pos]; return `？イベント：${p.name} と ${o.name} の場所が入れ替わった！`; }
+    default: { const o = pick(others), d = Math.min(4, o.coins); o.coins -= d; p.coins += d; return `？イベント：${p.name} は ${o.name} からコインを ${d} 枚もらった！`; }
+  }
+}
+
+async function hostCrown(h, p, alive) {
+  if (p.coins < CROWN_COST) { hostBoard('info', p.id, `👑 王冠マス！でも ${p.name} はコインが ${CROWN_COST} 枚ない…`); await sleep(1600); return; }
+  hostBoard('buy', p.id, `👑 ${p.name}：コイン ${CROWN_COST} 枚を王冠と交換する？`);
+  const yes = await hostWait('buy', p.id, 15000, true);
+  if (!alive() || !h.players.includes(p)) return;
+  if (yes) { p.coins -= CROWN_COST; p.crowns++; moveCrown(h); hostBoard('info', p.id, `👑 ${p.name} が王冠をゲット！ 王冠は別のマスへ移動した`); await sleep(2200); }
+}
+
+async function hostTurn(h, p, alive) {
+  h.phase = 'board';
+  hostBoard('roll', p.id, `${p.name} の番！ サイコロを振ろう`);
+  await hostWait('roll', p.id, 20000, true);
+  if (!alive() || !h.players.includes(p)) return;
+  const n = 1 + Math.floor(Math.random() * 6);
+  hostBoard('moving', p.id, `${p.name} がサイコロを振った！`);
+  hostBroadcast({ t: 'dice', n });
+  await sleep(1500); if (!alive()) return;
+  for (let i = 1; i <= n; i++) {
+    if (!h.players.includes(p)) return;
+    p.pos = (p.pos + 1) % N_SPACES;
+    hostBoard('moving', p.id, `${p.name}：あと ${n - i} マス`);
+    await sleep(340); if (!alive()) return;
+    if (p.pos === h.crownAt) { await hostCrown(h, p, alive); if (!alive() || !h.players.includes(p)) return; }
+  }
+  hostBoard('info', p.id, applySpace(h, p));
+  await sleep(2000);
+}
+
+async function hostStart() {
+  const h = H, gen = ++h.gen, alive = () => H === h && h.gen === gen;
+  h.maxRounds = +$('rounds').value || 8; h.bag = [];
+  h.players.forEach(p => { p.coins = 5; p.crowns = 0; p.pos = 0; p.mg = 0; });
+  h.crownAt = 8 + Math.floor(Math.random() * 14);
+  for (h.round = 1; h.round <= h.maxRounds; h.round++) {
+    for (const p of h.players.slice()) {
+      if (!h.players.includes(p)) continue;
+      await hostTurn(h, p, alive); if (!alive()) return;
+    }
+    h.phase = 'board'; hostBoard('info', null, '全員が動いた！ ミニゲームの時間だ！');
+    await sleep(2000); if (!alive()) return;
+    hostRound();
+    await hostWait('next', myId, 3600000, true); if (!alive()) return;
+  }
+  h.round = h.maxRounds;
+  const best = Math.max(...h.players.map(p => p.mg));
+  const bonus = best > 0 ? h.players.filter(p => p.mg === best) : [];
+  bonus.forEach(p => p.crowns++);
+  h.phase = 'final';
+  hostBroadcast({ t: 'final', players: pub(), bonus: bonus.map(p => p.name) });
 }
 function hostRound() {
-  const gid = H.order[H.round], g = GAMES[gid];
+  if (!H.bag.length) { H.bag = Object.keys(GAMES); for (let i = H.bag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [H.bag[i], H.bag[j]] = [H.bag[j], H.bag[i]]; } }
+  const gid = H.bag.pop(), g = GAMES[gid];
   H.gid = gid; H.phase = 'game'; H.results = {}; H.pg = {}; H.gs = null;
   if (g.hostInit) g.hostInit(H);
-  hostBroadcast({ t: 'start', gid, seed: Math.floor(Math.random() * 1e9), round: H.round + 1, total: H.order.length, players: pub() });
+  hostBroadcast({ t: 'start', gid, seed: Math.floor(Math.random() * 1e9), round: H.round, total: H.maxRounds, players: pub() });
   clearInterval(H.tick); clearTimeout(H.timeout);
   H.tick = setInterval(() => { if (g.hostTick) g.hostTick(H); hostBroadcast({ t: 'pgs', m: H.pg }); }, 110);
   H.timeout = setTimeout(() => { if (g.hostScored) H.results = g.hostResult(H); hostConclude(); }, INTRO + g.dur * 1000 + 8000);
@@ -436,17 +545,15 @@ function hostConclude() {
   const beats = (a, b) => a !== null && (b === null || (g.better === 'high' ? a > b : a < b));
   const rows = H.players.map(p => {
     const v = val(p); const rank = H.players.filter(q => beats(val(q), v)).length;
-    const pts = v === null ? 0 : n - 1 - rank; p.score += pts;
+    const pts = v === null ? 0 : MG_COINS[rank]; p.coins += pts; p.mg += pts;
     return { id: p.id, v, rank, pts };
   }).sort((a, b) => a.rank - b.rank);
   H.phase = 'round';
-  hostBroadcast({ t: 'round', gid: H.gid, rows, players: pub(), round: H.round + 1, total: H.order.length });
+  hostBroadcast({ t: 'round', gid: H.gid, rows, players: pub(), round: H.round, total: H.maxRounds });
 }
 function hostNext() {
   if (!H || H.phase !== 'round') return;
-  H.round++;
-  if (H.round >= H.order.length) { H.phase = 'final'; hostBroadcast({ t: 'final', players: pub() }); }
-  else hostRound();
+  const w = H.wait; if (w && w.kind === 'next') w.done(true);
 }
 
 /* ================= クライアント処理 ================= */
@@ -471,36 +578,83 @@ function clientHandle(m) {
       $('hostCtl').style.display = isHost ? '' : 'none'; $('guestWait').style.display = isHost ? 'none' : '';
       break;
     }
+    case 'board': renderBoard(m); break;
+    case 'dice': rollDice(m.n); break;
     case 'start': runGame(m); break;
     case 'pgs': if (cur) renderHud(m.m); break;
     case 'g': if (cur && cur.inst && cur.inst.net && !cur.finished) cur.inst.net(m.d); break;
     case 'round': {
       stopGame(); const g = GAMES[m.gid]; show('round');
-      $('rtitle').textContent = `第${m.round}種目「${g.name}」の結果`;
+      $('rtitle').textContent = `ミニゲーム「${g.name}」の結果`;
       const tb = $('rbody'); tb.innerHTML = '';
       m.rows.forEach(r => {
         const p = byId(r.id), tr = el('tr'); const name = el('td'); name.append(chip(p));
-        const gain = el('td', 'num gain', '+' + r.pts);
-        tr.append(el('td', null, (r.rank + 1) + ' 位'), name, el('td', null, r.v === null ? '記録なし' : g.fmt(r.v)), gain, el('td', 'num', (p.score ?? 0) + ' 点'));
+        const gain = el('td', 'num gain', '+' + r.pts + ' 🪙');
+        tr.append(el('td', null, (r.rank + 1) + ' 位'), name, el('td', null, r.v === null ? '記録なし' : g.fmt(r.v)), gain, el('td', 'num', `👑${p.crowns ?? 0}　🪙${p.coins ?? 0}`));
         tb.append(tr);
       });
-      $('btnNext').textContent = m.round >= m.total ? '最終結果へ' : '次の種目へ';
+      $('btnNext').textContent = m.round >= m.total ? '最終結果へ' : 'ボードに戻る';
       $('btnNext').style.display = isHost ? '' : 'none'; $('rwait').style.display = isHost ? 'none' : '';
       break;
     }
     case 'final': {
       stopGame(); show('final');
       const tb = $('fbody'); tb.innerHTML = '';
-      const sorted = S.players.slice().sort((a, b) => b.score - a.score);
+      const key = p => p.crowns * 100000 + p.coins;
+      const sorted = S.players.slice().sort((a, b) => key(b) - key(a));
       sorted.forEach(p => {
-        const rank = sorted.filter(q => q.score > p.score).length;
+        const rank = sorted.filter(q => key(q) > key(p)).length;
         const tr = el('tr'); const name = el('td'); name.append(chip(p));
-        tr.append(el('td', null, (rank === 0 ? '👑 ' : '') + (rank + 1) + ' 位'), name, el('td', 'num', p.score + ' 点')); tb.append(tr);
+        tr.append(el('td', null, (rank === 0 ? '🏆 ' : '') + (rank + 1) + ' 位'), name, el('td', 'num', '👑 ' + p.crowns), el('td', 'num', '🪙 ' + p.coins)); tb.append(tr);
       });
+      $('fbonus').textContent = m.bonus && m.bonus.length ? `ボーナス：ミニゲームで一番コインを稼いだ ${m.bonus.join('、')} に王冠 +1！` : '';
       $('btnBack').style.display = isHost ? '' : 'none'; $('fwait').style.display = isHost ? 'none' : '';
       break;
     }
   }
+}
+
+/* ---- すごろくボード ---- */
+const SPACE_XY = [], spaceEls = [], tokenEls = {};
+(function buildBoard() {
+  const area = $('boardArea');
+  for (let i = 0; i < N_SPACES; i++) {
+    let c, r;
+    if (i < 10) { c = i; r = 0; } else if (i < 14) { c = 9; r = i - 9; } else if (i < 24) { c = 23 - i; r = 5; } else { c = 0; r = 28 - i; }
+    const x = (c + .5) * 10, y = (r + .5) / 6 * 100, t = SPACE_TYPES[i];
+    SPACE_XY.push([x, y]);
+    const s = el('div', 'space ' + t + (i === 0 ? ' start' : ''), i === 0 ? 'S' : t === 'p' ? '＋' : t === 'm' ? '−' : '？');
+    s.style.left = x + '%'; s.style.top = y + '%'; area.append(s); spaceEls.push(s);
+  }
+})();
+let diceTimer = null;
+function stopDice() { clearInterval(diceTimer); diceTimer = null; }
+function rollDice(n) {
+  stopDice(); const d = $('dice'); d.classList.remove('final'); const t0 = performance.now();
+  diceTimer = setInterval(() => {
+    if (performance.now() - t0 > 900) { stopDice(); d.textContent = n; d.classList.add('final'); }
+    else d.textContent = 1 + Math.floor(Math.random() * 6);
+  }, 70);
+}
+function renderBoard(m) {
+  stopGame(); show('board');
+  $('bround').textContent = `ラウンド ${m.round} / ${m.max}`;
+  const hud = $('bhud'); hud.innerHTML = '';
+  S.players.forEach(p => { const c = chip(p, `👑${p.crowns}　🪙${p.coins}`); if (p.id === m.turnId) c.classList.add('turn'); hud.append(c); });
+  spaceEls.forEach((s, i) => s.classList.toggle('crown', i === m.crownAt));
+  const OFF = [[-14, -14], [14, -14], [-14, 14], [14, 14]];
+  for (const id in tokenEls) if (!S.players.some(p => p.id === id)) { tokenEls[id].remove(); delete tokenEls[id]; }
+  S.players.forEach(p => {
+    let t = tokenEls[p.id]; if (!t) { t = tokenEls[p.id] = el('div', 'token'); $('boardArea').append(t); }
+    t.textContent = p.name[0] || '?'; t.style.background = COLORS[p.slot];
+    const [x, y] = SPACE_XY[p.pos], [dx, dy] = OFF[p.slot];
+    t.style.left = `calc(${x}% + ${dx}px)`; t.style.top = `calc(${y}% + ${dy}px)`;
+  });
+  $('bmsg').textContent = m.msg || '';
+  const mine = m.turnId === myId;
+  $('btnRoll').style.display = mine && m.phase === 'roll' ? '' : 'none';
+  $('btnBuyY').style.display = $('btnBuyN').style.display = mine && m.phase === 'buy' ? '' : 'none';
+  if (m.phase === 'roll') { stopDice(); $('dice').textContent = '🎲'; $('dice').classList.remove('final'); }
 }
 
 function renderHud(pg) {
@@ -516,7 +670,7 @@ function stopGame() {
 function runGame(m) {
   stopGame();
   const g = GAMES[m.gid]; show('game');
-  $('gname').textContent = g.name; $('ground').textContent = `第 ${m.round} / ${m.total} 種目`;
+  $('gname').textContent = g.name; $('ground').textContent = `ラウンド ${m.round} / ${m.total}`;
   const stage = $('stage'); stage.innerHTML = ''; $('tfill').style.width = '100%';
   renderHud(null);
   const c = cur = { g, offs: [], finished: false, inst: null, lastPg: undefined, sentPg: undefined };
@@ -557,6 +711,13 @@ $('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom
 $('btnSolo').onclick = () => initHost('');
 $('btnStart').onclick = () => { if (H && H.phase === 'lobby') hostStart(); };
 $('btnNext').onclick = hostNext;
+$('btnRoll').onclick = () => { $('btnRoll').style.display = 'none'; send({ t: 'roll' }); };
+$('btnBuyY').onclick = () => { $('btnBuyY').style.display = $('btnBuyN').style.display = 'none'; send({ t: 'buy', yes: true }); };
+$('btnBuyN').onclick = () => { $('btnBuyY').style.display = $('btnBuyN').style.display = 'none'; send({ t: 'buy', yes: false }); };
+window.addEventListener('keydown', e => {
+  if (e.code !== 'Space' || e.repeat || !$('board').classList.contains('on') || $('btnRoll').style.display === 'none') return;
+  e.preventDefault(); $('btnRoll').click();
+});
 $('btnBack').onclick = () => { if (H && H.phase === 'final') hostLobby(); };
 $('btnLeave').onclick = resetAll;
 $('btnCopy').onclick = () => { if (!S.code) return; navigator.clipboard.writeText(S.code).then(() => toast('合言葉をコピーしました'), () => toast('コピーできませんでした')); };
